@@ -75,7 +75,7 @@ class MqttPublisher:
     def unsubscribe(self, topic: str) -> None:
         raise NotImplementedError()
 
-    def publish(self, topic: str, payload: bytes | bytearray = None, qos: int = 0, retain: bool = False) -> None:
+    def publish(self, topic: str, payload: bytes | bytearray, qos: int = 0, retain: bool = False) -> None:
         raise NotImplementedError()
 
     def clear_topic(self, topic: str, qos: int = 0) -> None:

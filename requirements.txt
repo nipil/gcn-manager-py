@@ -1,5 +1,6 @@
 # required packages
 backoff==2.2.1
+dotenv==0.9.9
 email_validator==2.2.0
 ovh==1.2.0
 paho-mqtt==2.1.0
@@ -23,6 +24,7 @@ multidict==6.6.3
 oauthlib==3.3.1
 propcache==0.3.2
 pydantic_core==2.33.2
+python-dotenv==1.1.1
 requests==2.32.4
 requests-oauthlib==2.0.0
 typing-inspection==0.4.1

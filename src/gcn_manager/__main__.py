@@ -10,6 +10,8 @@ import sys
 from argparse import ArgumentParser, Namespace
 from asyncio import AbstractEventLoop
 
+from dotenv import load_dotenv
+
 from gcn_manager import AppError, datetime_system_tz
 from gcn_manager.brain import Brain
 from gcn_manager.constants import *
@@ -40,10 +42,6 @@ class App:
                 break
 
     def _graceful_shutdown(self, sig: signal.Signals) -> None:
-        if sig == signal.SIGINT:
-            sig = "SIGINT"
-        elif sig == signal.SIGTERM:
-            sig = "SIGTERM"
         logging.info(f"Received signal {sig}, requesting graceful shutdown")
         self._shutdown_requested.set()
 
@@ -87,7 +85,7 @@ def _tls_available_versions() -> tuple[str, ...]:
     return tuple(v for v in vars(ssl.TLSVersion) if not v.startswith("_"))
 
 
-def _to_tls_version(tls_version: str) -> ssl.TLSVersion | None:
+def _to_tls_version(tls_version: str | None) -> ssl.TLSVersion | None:
     if tls_version is None:
         return None
     if not hasattr(ssl.TLSVersion, tls_version):
@@ -97,6 +95,8 @@ def _to_tls_version(tls_version: str) -> ssl.TLSVersion | None:
 
 
 def main_trace() -> None:
+    load_dotenv()
+
     parser = ArgumentParser()
     parser.add_argument(CLI_OPT_TRACE, action="store_true")
     parser.add_argument("--log-level", choices=("debug", "info", "warning", "error", "critical"),

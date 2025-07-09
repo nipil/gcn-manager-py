@@ -8,10 +8,12 @@ from functools import partial
 from typing import Any
 
 import backoff
-import paho
-from paho.mqtt.client import Client, ConnectFlags, DisconnectFlags, ReasonCodes, Properties, MQTTMessage, \
-    MQTTMessageInfo, MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING, MQTT_LOG_ERR, MQTT_LOG_DEBUG, MQTT_ERR_NO_CONN, \
-    MQTT_ERR_SUCCESS, PayloadType
+from paho.mqtt.client import Client, ConnectFlags, DisconnectFlags, MQTTMessage, MQTTv311, MQTTMessageInfo, \
+    MQTT_LOG_INFO, MQTT_LOG_NOTICE, MQTT_LOG_WARNING, MQTT_LOG_ERR, MQTT_LOG_DEBUG, MQTT_ERR_NO_CONN, MQTT_ERR_SUCCESS, \
+    PayloadType
+from paho.mqtt.enums import CallbackAPIVersion
+from paho.mqtt.properties import Properties
+from paho.mqtt.reasoncodes import ReasonCodes
 
 from gcn_manager import AppError, MqttPublisher, MqttMessage, MessageProcessor, DelayedAction
 from gcn_manager.constants import *
@@ -65,9 +67,8 @@ class MqttAgent(MqttPublisher):
         self._connect_result: asyncio.Future | None = None
         self._disconnect_result: asyncio.Future | None = None
         # PAHO client configuration
-        self._paho_mqtt_client = Client(callback_api_version=paho.mqtt.client.CallbackAPIVersion.VERSION2,
-                                        clean_session=True, client_id=self.client_id,
-                                        protocol=paho.mqtt.client.MQTTv311, transport=args.mqtt_transport,
+        self._paho_mqtt_client = Client(callback_api_version=CallbackAPIVersion.VERSION2, clean_session=True,
+                                        client_id=self.client_id, protocol=MQTTv311, transport=args.mqtt_transport,
                                         reconnect_on_failure=self._args.mqtt_reconnect)
         context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
         if self._args.mqtt_tls_min_version is not None:
@@ -140,7 +141,7 @@ class MqttAgent(MqttPublisher):
         # and return result if it did not fail temporarily
         return self._connect_result
 
-    def publish(self, topic: str, payload: PayloadType = None, qos: int = 0, retain: bool = False,
+    def publish(self, topic: str, payload: PayloadType, qos: int = 0, retain: bool = False,
                 properties: Properties | None = None) -> MQTTMessageInfo:
         info = self._paho_mqtt_client.publish(topic, payload, qos, retain, properties)
         logging.debug(f"Published message {info}")

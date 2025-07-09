@@ -1,5 +1,4 @@
 import asyncio
-import asyncio
 import logging
 import time
 from argparse import Namespace
