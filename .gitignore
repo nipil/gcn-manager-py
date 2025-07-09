@@ -209,3 +209,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# requirements, since we use pip-compile from pyproject.toml
+requirement*.txt
