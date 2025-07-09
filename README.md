@@ -81,9 +81,15 @@
     - description : ID du DLR . Les différents ID sont décrits dans le second tableau ci-dessous
     - descriptionDlr : description du status du DLR
 
-# python asyncio debug
+# development
+
+python asyncio debug
 
     export PYTHONASYNCIODEBUG=1
+
+install make on windows (for docker images) then restart powershell
+
+    winget install --id ezwinports.make
 
 # credentials
 

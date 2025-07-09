@@ -212,3 +212,7 @@ __marimo__/
 
 # requirements, since we use pip-compile from pyproject.toml
 requirement*.txt
+
+# package artifacts
+dist/
+dist-extract/
