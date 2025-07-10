@@ -189,9 +189,11 @@ class Brain(MessageProcessor):
                             return
                         # notify of change
                         if bool(sample.state):
-                            await GcnGpioChangeUp(client=client, gpio_name=gpio)
+                            await GcnGpioChangeUp(client=client, gpio_name=gpio).send()
                         else:
-                            await GcnGpioChangeDown(client=client, gpio_name=gpio)
+                            await GcnGpioChangeDown(
+                                client=client, gpio_name=gpio
+                            ).send()
 
                     else:
                         logging.debug(
