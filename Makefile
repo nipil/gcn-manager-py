@@ -1,4 +1,4 @@
-.PHONY: clean dev-deps setup-dev dist test-pypi pypi docker-image docker-hub docker-hub-latest
+.PHONY: clean dev-deps setup-dev dist test-pypi pypi docker-image docker-hub docker-hub-latest docker
 
 hub_org = nipil
 package := $(shell python3 -c 'import tomllib; fp=open("pyproject.toml","rb"); print(tomllib.load(fp)["project"]["name"]); fp.close()')
@@ -8,7 +8,7 @@ clean:
 	rm -Rf dist/ dist-extract/ requirements.txt
 
 dev-deps:
-	# pip install --upgrade build pip pip-tools setuptools twine wheel
+	pip install --upgrade build pip pip-tools setuptools twine wheel
 	ln -s -f $(PWD)/.pypirc $(HOME)/
 
 requirements.txt: pyproject.toml
@@ -21,7 +21,7 @@ setup-dev: dev-deps requirements.txt
 dist: pyproject.toml
 	rm -Rf dist/
 	python3 -m build
-	unzip dist/*.whl -d dist-extract
+	unzip -o -d dist-extract dist/*.whl
 
 test-pypi:
 	twine upload -r testpypi dist/*
@@ -38,3 +38,5 @@ docker-hub:
 docker-hub-latest:
 	docker tag $(hub_org)/$(package):$(version) $(hub_org)/$(package):latest
 	docker push $(hub_org)/$(package):latest
+
+docker: docker-image docker-hub docker-hub-latest
