@@ -8,7 +8,7 @@ clean:
 	rm -Rf dist/ dist-extract/ requirements.txt
 
 dev-deps:
-	# pip install --upgrade build pip pip-tools setuptools twine wheel
+	pip install --upgrade build pip pip-tools setuptools twine wheel
 	ln -s -f $(PWD)/.pypirc $(HOME)/
 
 requirements.txt: pyproject.toml
