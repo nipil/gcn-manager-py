@@ -34,6 +34,7 @@ class Recipient:
         cls._PROVIDER = provider
 
     async def send_notification(self, notification: "Notification") -> None:
+        logging.debug(f"Sending notification {repr(notification)} to {repr(self)}")
         if self._PROVIDER is None:
             logging.warning(
                 f"No provider available for {self.__class__.__name__} for sending {notification.__class__}"
@@ -153,11 +154,15 @@ class Notification(BaseModel):
         raise NotImplementedError()
 
     async def send(self) -> None:
-        # TODO: process by type, so that providers can reuse connections instead of creating one per notification
-        # TODO: collect the ignored failures and raise a single NotificationError instead of warning
-        for recipient in self._RECIPIENTS:
-            logging.debug(f"Sending notification {repr(self)} to {repr(recipient)}")
-            await recipient.send_notification(self)
+        coro = [recipient.send_notification(self) for recipient in self._RECIPIENTS]
+        results = await asyncio.gather(*coro, return_exceptions=True)
+        exc = [str(result) for result in results if isinstance(result, Exception)]
+        logging.info(f"{len(results)-len(exc)} notification sent successfuly")
+        if len(exc) > 0:
+            logging.warning(
+                f"{self.__class__} encountered problems : "
+                f"{len(exc)} recipients produced errors : {''.join(exc)}"
+            )
 
 
 class ManagerStartingNotification(Notification):
