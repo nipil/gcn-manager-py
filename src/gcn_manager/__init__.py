@@ -29,15 +29,19 @@ class MqttMessage(BaseModel):
         try:
             return self.payload.decode("utf-8")
         except UnicodeDecodeError:
-            raise MessageError(f"Could not decode payload {self.payload} for topic {self.topic}")
+            raise MessageError(
+                f"Could not decode payload {self.payload} for topic {self.topic}"
+            )
 
     def decode_payload_as(self, target_type: type) -> Any:
         decode = self.decode_payload()
         try:
             return target_type(decode)
         except ValueError as e:
-            raise MessageError(f"Invalid payload {self.payload} for type "
-                               f"{target_type.__name__} for topic {self.topic} : {e}")
+            raise MessageError(
+                f"Invalid payload {self.payload} for type "
+                f"{target_type.__name__} for topic {self.topic} : {e}"
+            )
 
 
 class ClientStatus(enum.StrEnum):
@@ -49,7 +53,7 @@ def get_env(key: str) -> str:
     try:
         return os.environ[key]
     except KeyError:
-        raise AppError(f'Environment variable {key} not set')
+        raise AppError(f"Environment variable {key} not set")
 
 
 def datetime_system_tz() -> datetime:
@@ -75,12 +79,14 @@ class MqttPublisher:
     def unsubscribe(self, topic: str) -> None:
         raise NotImplementedError()
 
-    def publish(self, topic: str, payload: bytes | bytearray, qos: int = 0, retain: bool = False) -> None:
+    def publish(
+        self, topic: str, payload: bytes | bytearray, qos: int = 0, retain: bool = False
+    ) -> None:
         raise NotImplementedError()
 
     def clear_topic(self, topic: str, qos: int = 0) -> None:
         # need retain to remove a retained message
-        self.publish(topic, b'', qos=qos, retain=True)
+        self.publish(topic, b"", qos=qos, retain=True)
 
 
 class MessageProcessor:
@@ -93,7 +99,14 @@ class MessageProcessor:
 
 
 class DelayedAction:
-    def __init__(self, seconds: float, fn: Callable, *args, loop: asyncio.AbstractEventLoop, name: str) -> None:
+    def __init__(
+        self,
+        seconds: float,
+        fn: Callable,
+        *args,
+        loop: asyncio.AbstractEventLoop,
+        name: str,
+    ) -> None:
         self._seconds = seconds
         self._name = name
         self._event_loop = loop
