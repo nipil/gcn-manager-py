@@ -172,7 +172,7 @@ def main_trace() -> None:
         "--mqtt-reconnect",
         action="store_true",
         default=os.environ.get(ENV_GCN_MQTT_RECONNECT,
-                               DEFAULT_ENV_GCN_MQTT_RECONNECT),
+                               DEFAULT_GCN_MQTT_RECONNECT),
     )
     parser.add_argument(
         "--mqtt-still-connecting-alert",
@@ -375,6 +375,20 @@ def main_trace() -> None:
         "--email-smtp-debug",
         action="store_true",
         default=bool(int(os.environ.get(ENV_GCN_EMAIL_SMTP_DEBUG, "0"))),
+    )
+    parser.add_argument(
+        "--email-smtp-disable-tls13",
+        action="store_true",
+        default=bool(
+            int(os.environ.get(ENV_GCN_EMAIL_SMTP_DISABLE_TLS13, "0"))),
+    )
+    parser.add_argument(
+        "--email-smtp-timeout",
+        type=float,
+        metavar="SEC",
+        default=os.environ.get(
+            ENV_GCN_EMAIL_SMTP_TIMEOUT_SEC, DEFAULT_GCN_EMAIL_SMTP_TIMEOUT_SEC
+        ),
     )
 
     parser.add_argument(

@@ -298,7 +298,7 @@ class SmtpProvider(BaseModel, Provider):
     starttls: bool = False
     sender: NameEmail = None
     debug: bool = False
-    timeout_sec: float = 1
+    timeout_sec: float = DEFAULT_GCN_EMAIL_SMTP_TIMEOUT_SEC
     disable_tls13: bool = False  # TODO: make configurable ?
 
     def decode_response(self, response: bytes) -> str:
@@ -882,6 +882,8 @@ def setup_notification_recipients(args: Namespace) -> None:
             "starttls": args.email_smtp_starttls,
             "sender": args.email_from,
             "debug": args.email_smtp_debug,
+            "disable_tls13": args.email_smtp_disable_tls13,
+            "timeout_sec": args.email_smtp_timeout,
         }
         try:
             provider = SmtpProvider(**smtp_config)
