@@ -20,7 +20,8 @@ from gcn_manager import ClientInfo, datetime_tz, AppError, NotificationError
 from gcn_manager.constants import *
 
 KNOWN_REGION_CODES = set(
-    itertools.chain(*phonenumbers.phonenumberutil.COUNTRY_CODE_TO_REGION_CODE.values())
+    itertools.chain(
+        *phonenumbers.phonenumberutil.COUNTRY_CODE_TO_REGION_CODE.values())
 )
 
 
@@ -34,7 +35,8 @@ class Recipient:
         cls._PROVIDER = provider
 
     async def send_notification(self, notification: "Notification") -> None:
-        logging.debug(f"Sending notification {repr(notification)} to {repr(self)}")
+        logging.debug(
+            f"Sending notification {repr(notification)} to {repr(self)}")
         if self._PROVIDER is None:
             logging.warning(
                 f"No provider available for {self.__class__.__name__} for sending {notification.__class__}"
@@ -75,7 +77,8 @@ class SmsRecipient(Recipient, BaseModel):
         try:
             result = phonenumbers.parse(result.group(0))
         except phonenumbers.NumberParseException as e:
-            raise ValueError(f"Cannot parse {result.group(0)} phone number : {e}")
+            raise ValueError(
+                f"Cannot parse {result.group(0)} phone number : {e}")
         if not phonenumbers.is_possible_number(result):
             raise ValueError(f"Impossible {result} phone number {value}")
         if not phonenumbers.is_valid_number(result):
@@ -89,7 +92,8 @@ class SmsRecipient(Recipient, BaseModel):
 
 class TwitterRecipient(Recipient, BaseModel):
     _PROVIDER: ClassVar["TwitterProvider"] = None
-    RE_VALIDATOR_USERNAME: ClassVar[re.Pattern] = re.compile(r"^@([A-Za-z0-9_]{4,15})$")
+    RE_VALIDATOR_USERNAME: ClassVar[re.Pattern] = re.compile(
+        r"^@([A-Za-z0-9_]{4,15})$")
 
     username: str
 
@@ -120,7 +124,8 @@ class Notification(BaseModel):
     @classmethod
     def set_recipients(cls, comma_separated_ids: str) -> None:
         cls._RECIPIENTS = list()
-        logging.debug(f"Setting {cls.__name__} recipients from : {comma_separated_ids}")
+        logging.debug(
+            f"Setting {cls.__name__} recipients from : {comma_separated_ids}")
         if comma_separated_ids is None:
             return
         tokens = set(
@@ -130,7 +135,8 @@ class Notification(BaseModel):
         )
         for token in tokens:
             for try_class in cls._RECIPIENT_CLASSES:
-                logging.debug(f"Trying {try_class.__name__} recipients for {token}")
+                logging.debug(
+                    f"Trying {try_class.__name__} recipients for {token}")
                 try:
                     recipient = try_class.from_string(token)
                 except ValidationError as e:
@@ -154,15 +160,25 @@ class Notification(BaseModel):
         raise NotImplementedError()
 
     async def send(self) -> None:
-        coro = [recipient.send_notification(self) for recipient in self._RECIPIENTS]
-        results = await asyncio.gather(*coro, return_exceptions=True)
-        exc = [str(result) for result in results if isinstance(result, Exception)]
-        logging.info(f"{len(results)-len(exc)} notification sent successfuly")
-        if len(exc) > 0:
-            logging.warning(
-                f"{self.__class__} encountered problems : "
-                f"{len(exc)} recipients produced errors : {''.join(exc)}"
+        if len(self._RECIPIENTS) == 0:
+            logging.debug(
+                f"{self.__class__.__name__} has no recipients"
             )
+            return
+        coro = [recipient.send_notification(self)
+                for recipient in self._RECIPIENTS]
+        results = await asyncio.gather(*coro, return_exceptions=True)
+        success = errors = 0
+        for recipient, result in zip(self._RECIPIENTS, results):
+            if isinstance(result, Exception):
+                errors += 1
+                logging.warning(f"Error sending to {recipient} : {result=}")
+            else:
+                success += 1
+                logging.debug(f"Success sending to {recipient} : {result=}")
+        logging.info(
+            f"{self.__class__.__name__} send report : {success} ok and {errors} failed"
+        )
 
 
 class ManagerStartingNotification(Notification):
@@ -416,7 +432,7 @@ class TwitterProvider(BaseModel, Provider):
                     f"Twitter provider had to crop {notification.__class__.__name__} from "
                     f"{len(text)} to {self.MAX_TEXT_LENGTH} as it was too long"
                 )
-                text = text[0 : self.MAX_TEXT_LENGTH]
+                text = text[0: self.MAX_TEXT_LENGTH]
             result: tweepy.Response = await client.create_tweet(
                 text=text, user_auth=True
             )
@@ -582,7 +598,8 @@ class OvhSmsProvider(BaseModel, Provider):
                 f"Time skew ({time_skew}) from host to OVH api "
                 f"is greater than acceptable {OVH_API_MAX_TIME_SKEW}"
             )
-        logging.debug(f"OVH api time skew compared to host is {time_skew} seconds")
+        logging.debug(
+            f"OVH api time skew compared to host is {time_skew} seconds")
 
     @staticmethod
     def _estimate_message(client: ovh.Client, text: str) -> OvhSmsEstimation:
@@ -607,7 +624,8 @@ class OvhSmsProvider(BaseModel, Provider):
         return OvhSmsServiceInfos(**result)
 
     def _get_user(self, client: ovh.Client) -> OvhSmsServiceUser:
-        result = client.get(f"/sms/{self.api_service_name}/users/{self.api_user_name}")
+        result = client.get(
+            f"/sms/{self.api_service_name}/users/{self.api_user_name}")
         logging.debug(f"OVH api service user result : {result}")
         return OvhSmsServiceUser(**result)
 
@@ -647,7 +665,8 @@ class OvhSmsProvider(BaseModel, Provider):
         result = client.get(
             f"/sms/{self.api_service_name}/users/{self.api_user_name}/jobs/{job_id}"
         )
-        logging.debug(f"OVH api service user job ID {job_id} result : {result}")
+        logging.debug(
+            f"OVH api service user job ID {job_id} result : {result}")
         return result
 
     def _post_job(
@@ -657,7 +676,8 @@ class OvhSmsProvider(BaseModel, Provider):
             f"/sms/{self.api_service_name}/users/{self.api_user_name}/jobs",
             **post.model_dump(),
         )
-        logging.debug(f"OVH api service user post job ID {post} result : {result}")
+        logging.debug(
+            f"OVH api service user post job ID {post} result : {result}")
         return OvhSmsServiceUserJobPostResult(**result)
 
     def _check_recipient_country(self, number: PhoneNumber) -> None:
@@ -799,7 +819,8 @@ class OvhSmsProvider(BaseModel, Provider):
                 except KeyError:
                     previous_job = job
                 if previous_job != job:
-                    logging.critical(f"Job {job_id} updated : {previous_job} -> {job}")
+                    logging.critical(
+                        f"Job {job_id} updated : {previous_job} -> {job}")
                 jobs[job_id] = job
             # update until completion
             result.ids = found_job_ids
@@ -822,17 +843,22 @@ class OvhSmsProvider(BaseModel, Provider):
 
 
 def setup_notification_recipients(args: Namespace) -> None:
-    ManagerStartingNotification.set_recipients(args.notify_manager_starting_recipients)
+    ManagerStartingNotification.set_recipients(
+        args.notify_manager_starting_recipients)
     MqttStillConnectingNotification.set_recipients(
         args.notify_manager_still_connecting_recipients
     )
-    MqttConnectedNotification.set_recipients(args.notify_manager_connected_recipients)
+    MqttConnectedNotification.set_recipients(
+        args.notify_manager_connected_recipients)
     MqttDisconnectedNotification.set_recipients(
         args.notify_manager_disconnected_recipients
     )
-    ManagerExitingNotification.set_recipients(args.notify_manager_exiting_recipients)
-    GcnHeartbeatSkewed.set_recipients(args.notify_client_skewed_heartbeat_recipients)
-    GcnHeartbeatMissed.set_recipients(args.notify_client_missed_heartbeat_recipients)
+    ManagerExitingNotification.set_recipients(
+        args.notify_manager_exiting_recipients)
+    GcnHeartbeatSkewed.set_recipients(
+        args.notify_client_skewed_heartbeat_recipients)
+    GcnHeartbeatMissed.set_recipients(
+        args.notify_client_missed_heartbeat_recipients)
     GcnDroppedItems.set_recipients(args.notify_client_dropped_items_recipients)
     GcnStatusChangeOnline.set_recipients(
         args.notify_client_status_change_online_recipients
@@ -840,8 +866,10 @@ def setup_notification_recipients(args: Namespace) -> None:
     GcnStatusChangeOffline.set_recipients(
         args.notify_client_status_change_offline_recipients
     )
-    GcnGpioChangeUp.set_recipients(args.notify_client_gpio_change_up_recipients)
-    GcnGpioChangeDown.set_recipients(args.notify_client_gpio_change_down_recipients)
+    GcnGpioChangeUp.set_recipients(
+        args.notify_client_gpio_change_up_recipients)
+    GcnGpioChangeDown.set_recipients(
+        args.notify_client_gpio_change_down_recipients)
 
     if not args.enable_email_notifications:
         logging.info("Email notifications disabled")
@@ -896,7 +924,8 @@ def setup_notification_recipients(args: Namespace) -> None:
         try:
             provider = OvhSmsProvider(**ovh_sms_config)
         except ValidationError as e:
-            raise AppError(f"Could not configure SMS : {' '.join(str(e).splitlines())}")
+            raise AppError(
+                f"Could not configure SMS : {' '.join(str(e).splitlines())}")
         SmsRecipient.set_provider(provider)
 
     if not args.enable_twitter_notifications:

@@ -1,8 +1,17 @@
-.PHONY: clean dev-deps setup-dev dist test-pypi pypi docker-image docker-hub docker-hub-latest docker
+.PHONY: run clean dev-deps setup-dev dist test-pypi pypi docker-image docker-hub docker-hub-latest docker
 
 hub_org = nipil
 package := $(shell python3 -c 'import tomllib; fp=open("pyproject.toml","rb"); print(tomllib.load(fp)["project"]["name"]); fp.close()')
 version := $(shell python3 -c 'import tomllib; fp=open("pyproject.toml","rb"); print(tomllib.load(fp)["project"]["version"]); fp.close()')
+
+run:
+	python3 -m gcn_manager --trace --log-level info --mqtt-reconnect
+
+usage:
+	python3 -m gcn_manager --help
+
+print-env:
+	python3 -m gcn_manager --print-env-then-exit
 
 clean:
 	rm -Rf dist/ dist-extract/ requirements.txt

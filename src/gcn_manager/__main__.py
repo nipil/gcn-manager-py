@@ -81,7 +81,8 @@ class App:
                 id=app.mqtt_client_id, started_at=start
             ).send()
         except NotificationError as e:
-            raise AppError(f"Error while sending manager start notification : {e}")
+            raise AppError(
+                f"Error while sending manager start notification : {e}")
         try:
             await app.run_with_graceful_shutdown()
         except KeyboardInterrupt:
@@ -92,7 +93,8 @@ class App:
                     id=app.mqtt_client_id, run_duration=datetime_system_tz() - start
                 ).send()
             except NotificationError as e:
-                logging.error(f"Error while sending manager stop notification : {e}")
+                logging.error(
+                    f"Error while sending manager stop notification : {e}")
 
             logging.info("Exiting application loop")
 
@@ -120,8 +122,13 @@ def main_trace() -> None:
     parser.add_argument(
         "--log-level",
         choices=("debug", "info", "warning", "error", "critical"),
-        default=os.environ.get(ENV_GCN_MQTT_LOG_LEVEL, DEFAULT_GCN_MQTT_LOG_LEVEL),
+        default=os.environ.get(ENV_GCN_MQTT_LOG_LEVEL,
+                               DEFAULT_GCN_MQTT_LOG_LEVEL),
         metavar="LVL",
+    )
+    parser.add_argument(
+        "--print-env-then-exit",
+        action="store_true",
     )
 
     parser.add_argument(
@@ -164,7 +171,8 @@ def main_trace() -> None:
     parser.add_argument(
         "--mqtt-reconnect",
         action="store_true",
-        default=os.environ.get(ENV_GCN_MQTT_RECONNECT, DEFAULT_ENV_GCN_MQTT_RECONNECT),
+        default=os.environ.get(ENV_GCN_MQTT_RECONNECT,
+                               DEFAULT_ENV_GCN_MQTT_RECONNECT),
     )
     parser.add_argument(
         "--mqtt-still-connecting-alert",
@@ -178,7 +186,8 @@ def main_trace() -> None:
         "--mqtt-transport",
         choices=("tcp", "websocket", "unix"),
         metavar="STR",
-        default=os.environ.get(ENV_GCN_MQTT_TRANSPORT, DEFAULT_GCN_MQTT_TRANSPORT),
+        default=os.environ.get(ENV_GCN_MQTT_TRANSPORT,
+                               DEFAULT_GCN_MQTT_TRANSPORT),
     )
     parser.add_argument(
         "--mqtt-client-id-random-bytes",
@@ -210,7 +219,8 @@ def main_trace() -> None:
     )
     parser.add_argument(
         "--mqtt-tls-ciphers",
-        default=os.environ.get(ENV_GCN_MQTT_TLS_CIPHERS, DEFAULT_GCN_MQTT_TLS_CIPHERS),
+        default=os.environ.get(ENV_GCN_MQTT_TLS_CIPHERS,
+                               DEFAULT_GCN_MQTT_TLS_CIPHERS),
         metavar="STR",
     )
     parser.add_argument(
@@ -271,7 +281,8 @@ def main_trace() -> None:
     parser.add_argument(
         "--notify-manager-still-connecting-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_MANAGER_STILL_CONNECTING_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_MANAGER_STILL_CONNECTING_RECIPIENTS, None),
     )
     parser.add_argument(
         "--notify-manager-connected-recipients",
@@ -292,12 +303,14 @@ def main_trace() -> None:
     parser.add_argument(
         "--notify-client-skewed-heartbeat-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_CLIENT_SKEWED_HEARTBEAT_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_CLIENT_SKEWED_HEARTBEAT_RECIPIENTS, None),
     )
     parser.add_argument(
         "--notify-client-missed-heartbeat-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_CLIENT_MISSED_HEARTBEAT_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_CLIENT_MISSED_HEARTBEAT_RECIPIENTS, None),
     )
     parser.add_argument(
         "--notify-client-dropped-items-recipients",
@@ -307,12 +320,14 @@ def main_trace() -> None:
     parser.add_argument(
         "--notify-client-status-change-online-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_CLIENT_STATUS_CHANGE_ONLINE_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_CLIENT_STATUS_CHANGE_ONLINE_RECIPIENTS, None),
     )
     parser.add_argument(
         "--notify-client-status-change-offline-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_CLIENT_STATUS_CHANGE_OFFLINE_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_CLIENT_STATUS_CHANGE_OFFLINE_RECIPIENTS, None),
     )
     parser.add_argument(
         "--notify-client-gpio-change-up-recipients",
@@ -322,11 +337,13 @@ def main_trace() -> None:
     parser.add_argument(
         "--notify-client-gpio-change-down-recipients",
         metavar="A,B,C",
-        default=os.environ.get(ENV_GCN_CLIENT_GPIO_CHANGE_DOWN_RECIPIENTS, None),
+        default=os.environ.get(
+            ENV_GCN_CLIENT_GPIO_CHANGE_DOWN_RECIPIENTS, None),
     )
 
     parser.add_argument(
-        "--email-from", metavar="FROM", default=os.environ.get(ENV_GCN_EMAIL_FROM, None)
+        "--email-from", metavar="FROM",
+        default=os.environ.get(ENV_GCN_EMAIL_FROM, None)
     )
     parser.add_argument(
         "--email-smtp-host",
@@ -432,11 +449,16 @@ def main_trace() -> None:
     )
 
     args = parser.parse_args()
+    if args.print_env_then_exit:
+        for key, value in sorted(os.environ.items()):
+            print(f"{key}={value}")
+        return
+
     log_level = getattr(logging, args.log_level.upper())
     logging.basicConfig(format="%(levelname)s %(message)s", level=log_level)
     logging.getLogger("asyncio").setLevel(log_level)
 
-    # DO NOT log args, as they contain sensitive values pulled from environment variables
+    # DO NOT log env/args, as they contain sensitive values pulled from environment variables
 
     setup_notification_recipients(args)
 
