@@ -256,6 +256,15 @@ def main_trace() -> None:
             ENV_GCN_HEARTBEAT_WATCHDOG_SEC, DEFAULT_GCN_HEARTBEAT_WATCHDOG_SEC
         ),
     )
+    parser.add_argument(
+        "--client-gpio-change-debounce-sec",
+        type=float,
+        metavar="SEC",
+        default=os.environ.get(
+            ENV_GCN_CLIENT_GPIO_CHANGE_DEBOUNCE_SEC,
+            DEFAULT_GCN_CLIENT_GPIO_CHANGE_DEBOUNCE_SEC
+        ),
+    )
 
     parser.add_argument(
         "--enable-email-notifications",
@@ -381,6 +390,12 @@ def main_trace() -> None:
         action="store_true",
         default=bool(
             int(os.environ.get(ENV_GCN_EMAIL_SMTP_DISABLE_TLS13, "0"))),
+    )
+    parser.add_argument(
+        "--email-smtp-send-as-report",
+        action="store_true",
+        default=bool(
+            int(os.environ.get(ENV_GCN_EMAIL_SMTP_SEND_AS_REPORT, "0"))),
     )
     parser.add_argument(
         "--email-smtp-timeout",

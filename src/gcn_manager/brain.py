@@ -187,6 +187,13 @@ class Brain(MessageProcessor):
                                 f"{previous.timestamp} to {sample.timestamp} : {sample.state}"
                             )
                             return
+                        # check if debounce is needed
+                        if abs(sample.timestamp - previous.timestamp) < self._args.client_gpio_change_debounce_sec:
+                            logging.warning(
+                                f"Client {client.id} gpio {gpio} has changed at {sample.timestamp} from previous {previous.timestamp} "
+                                f"which is faster than {self._args.client_gpio_change_debounce_sec} sec : skipping notification"
+                            )
+                            return
                         # notify of change
                         if bool(sample.state):
                             await GcnGpioChangeUp(client=client, gpio_name=gpio).send()

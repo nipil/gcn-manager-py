@@ -5,6 +5,7 @@ import smtplib
 import ssl
 import time
 from argparse import Namespace
+from collections import deque
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from enum import StrEnum
@@ -14,9 +15,15 @@ import ovh
 import phonenumbers
 import tweepy.asynchronous
 from phonenumbers import PhoneNumber
-from pydantic import BaseModel, NameEmail, field_validator, ValidationError
+from pydantic import BaseModel, NameEmail, field_validator, ValidationError, Field
 
-from gcn_manager import ClientInfo, datetime_tz, AppError, NotificationError
+from gcn_manager import (
+    ClientInfo,
+    datetime_tz,
+    AppError,
+    NotificationError,
+    datetime_system_tz,
+)
 from gcn_manager.constants import *
 
 KNOWN_REGION_CODES = set(
@@ -121,6 +128,8 @@ class Notification(BaseModel):
     )
     _RECIPIENTS: ClassVar[list[Recipient]] = list()
 
+    moment: datetime = Field(default_factory=datetime_system_tz)
+
     @classmethod
     def set_recipients(cls, comma_separated_ids: str) -> None:
         cls._RECIPIENTS = list()
@@ -161,9 +170,7 @@ class Notification(BaseModel):
 
     async def send(self) -> None:
         if len(self._RECIPIENTS) == 0:
-            logging.debug(
-                f"{self.__class__.__name__} has no recipients"
-            )
+            logging.debug(f"{self.__class__.__name__} has no recipients")
             return
         coro = [recipient.send_notification(self)
                 for recipient in self._RECIPIENTS]
@@ -183,10 +190,9 @@ class Notification(BaseModel):
 
 class ManagerStartingNotification(Notification):
     id: str
-    started_at: datetime
 
     def to_raw_text(self) -> str:
-        return f"Manager {self.id} starting on {self.started_at}"
+        return f"Manager {self.id} starting on {self.moment}"
 
 
 class ManagerExitingNotification(Notification):
@@ -194,7 +200,7 @@ class ManagerExitingNotification(Notification):
     run_duration: timedelta
 
     def to_raw_text(self) -> str:
-        return f"Manager {self.id} exiting after running for {self.run_duration}"
+        return f"Manager {self.id} exiting on {self.moment} after running for {self.run_duration}"
 
 
 class MqttStillConnectingNotification(Notification):
@@ -203,7 +209,7 @@ class MqttStillConnectingNotification(Notification):
     elapsed_seconds: float
 
     def to_raw_text(self) -> str:
-        return f"Manager {self.id} still connecting to MQTT {self.server} after {self.elapsed_seconds} seconds"
+        return f"Manager {self.id} at {self.moment} still connecting to MQTT {self.server} after {self.elapsed_seconds} seconds"
 
 
 class MqttConnectedNotification(Notification):
@@ -211,7 +217,9 @@ class MqttConnectedNotification(Notification):
     server: str
 
     def to_raw_text(self) -> str:
-        return f"Manager {self.id} connected to MQTT server {self.server}"
+        return (
+            f"Manager {self.id} connected to MQTT server {self.server} at {self.moment}"
+        )
 
 
 class MqttDisconnectedNotification(Notification):
@@ -219,7 +227,7 @@ class MqttDisconnectedNotification(Notification):
     server: str
 
     def to_raw_text(self) -> str:
-        return f"Manager {self.id} disconnected from MQTT server {self.server}"
+        return f"Manager {self.id} disconnected from MQTT server {self.server} at {self.moment}"
 
 
 class GcnHeartbeatSkewed(Notification):
@@ -230,7 +238,7 @@ class GcnHeartbeatSkewed(Notification):
     def to_raw_text(self) -> str:
         return (
             f"GCN client {self.client.id} ({self.client.status}) received heartbeat {self.client.heartbeat} "
-            f"skew {timedelta(seconds=self.skew)} from manager exceeds {self.max_skew} seconds"
+            f"at {self.moment} skew {timedelta(seconds=self.skew)} from manager exceeds {self.max_skew} seconds"
         )
 
 
@@ -241,7 +249,7 @@ class GcnHeartbeatMissed(Notification):
     def to_raw_text(self) -> str:
         return (
             f"GCN client {self.client.id} ({self.client.status}) not received in the last {self.elapsed_seconds} "
-            f"seconds, latest heartbeat {self.client.heartbeat} is {datetime_tz(self.client.heartbeat)}"
+            f"seconds, latest heartbeat {self.client.heartbeat} is {datetime_tz(self.client.heartbeat)} at {self.moment}"
         )
 
 
@@ -249,21 +257,21 @@ class GcnDroppedItems(Notification):
     client: ClientInfo
 
     def to_raw_text(self) -> str:
-        return f"GCN client {self.client.id} dropped item reached {self.client.buffer_total_dropped_item}"
+        return f"GCN client {self.client.id} dropped item reached {self.client.buffer_total_dropped_item} at {self.moment}"
 
 
 class GcnStatusChangeOnline(Notification):
     client: ClientInfo
 
     def to_raw_text(self) -> str:
-        return f"GCN client {self.client.id} status is {self.client.status}"
+        return f"GCN client {self.client.id} status is {self.client.status} at {self.moment}"
 
 
 class GcnStatusChangeOffline(Notification):
     client: ClientInfo
 
     def to_raw_text(self) -> str:
-        return f"GCN client {self.client.id} status is {self.client.status}"
+        return f"GCN client {self.client.id} status is {self.client.status} at {self.moment}"
 
 
 class GcnGpioChangeUp(Notification):
@@ -271,7 +279,9 @@ class GcnGpioChangeUp(Notification):
     gpio_name: str
 
     def to_raw_text(self) -> str:
-        return f"GCN client {self.client.id} gpio {self.gpio_name} is UP"
+        return (
+            f"GCN client {self.client.id} gpio {self.gpio_name} is UP at {self.moment}"
+        )
 
 
 class GcnGpioChangeDown(Notification):
@@ -279,7 +289,7 @@ class GcnGpioChangeDown(Notification):
     gpio_name: str
 
     def to_raw_text(self) -> str:
-        return f"GCN client {self.client.id} gpio {self.gpio_name} is DOWN"
+        return f"GCN client {self.client.id} gpio {self.gpio_name} is DOWN at {self.moment}"
 
 
 class Provider:
@@ -300,6 +310,7 @@ class SmtpProvider(BaseModel, Provider):
     debug: bool = False
     timeout_sec: float = DEFAULT_GCN_EMAIL_SMTP_TIMEOUT_SEC
     disable_tls13: bool = False  # TODO: make configurable ?
+    report_entries: deque | None = None
 
     def decode_response(self, response: bytes) -> str:
         try:
@@ -385,13 +396,17 @@ class SmtpProvider(BaseModel, Provider):
             raise NotificationError(
                 f"Provider {self.__class__.__name__} only supports {EmailRecipient.__name__}"
             )
+        text = notification.to_raw_text()
+        if self.report_entries is not None:
+            self.report_entries.append(text)
+            text = "\n".join(reversed(self.report_entries))
         message = EmailMessage()
         message["Subject"] = (
-            f"Notification for Brain/GCN : {notification.__class__.__name__}"
+            f"Notification for Brain/GCN : {notification.__class__.__name__} at {datetime_system_tz()}"
         )
         message["From"] = self.sender
         message["To"] = recipient.address
-        message.set_content(notification.to_raw_text())
+        message.set_content(text)
         try:
             await asyncio.to_thread(
                 (
@@ -883,6 +898,7 @@ def setup_notification_recipients(args: Namespace) -> None:
             "sender": args.email_from,
             "debug": args.email_smtp_debug,
             "disable_tls13": args.email_smtp_disable_tls13,
+            "report_entries": deque() if args.email_smtp_send_as_report else None,
             "timeout_sec": args.email_smtp_timeout,
         }
         try:

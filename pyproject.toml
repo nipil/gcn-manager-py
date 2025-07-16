@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gcn-manager"
-version = "1.0.5"
+version = "1.0.6"
 authors = [{ name = "nipil", email = "nipil@users.noreply.github.com" }, ]
 description = "Management application for mqtt-based gpio-change-notifier clients"
 readme = "README.md"
