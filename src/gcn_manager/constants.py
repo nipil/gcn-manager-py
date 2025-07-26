@@ -103,6 +103,17 @@ ENV_GCN_OVH_SMS_USER_NAME = "GCN_OVH_SMS_USER_NAME"
 ENV_OVH_API_ENDPOINT_NAME = "OVH_ENDPOINT"
 ENV_OVH_API_APPLICATION_KEY = "OVH_APPLICATION_KEY"
 ENV_OVH_API_APPLICATION_SECRET = "OVH_APPLICATION_SECRET"
+# Consumer key must have the following permissions
+# GET /sms/{service_name}
+# GET /sms/{service_name}/serviceInfos
+# GET /sms/{service_name}/users/{user_name}
+# GET /sms/{service_name}/users/{user_name}/incoming
+# GET /sms/{service_name}/users/{user_name}/incoming/{id}
+# GET /sms/{service_name}/users/{user_name}/jobs
+# GET /sms/{service_name}/users/{user_name}/jobs/{id}
+# GET /sms/{service_name}/senders/{sender_name}
+# POST /sms/estimate
+# POST /sms/{service_name}/users/{user_name}/jobs
 ENV_OVH_API_CONSUMER_KEY = "OVH_CONSUMER_KEY"
 ENV_GCN_OVH_API_TIMEOUT_SEC = "GCN_OVH_API_TIMEOUT_SEC"
 DEFAULT_GCN_OVH_API_TIMEOUT_SEC = 3
